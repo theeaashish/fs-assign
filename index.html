@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <p id="para"></p>
+
+    <button id="btn">click me</button>
+  </body>
+  <script>
+    const p = document.getElementById("para");
+    const btn = document.getElementById("btn");
+
+    btn.addEventListener("click", async () => {
+      async function getData() {
+        const res = await fetch("http://localhost:3000");
+        const data = await res.json();
+
+        return data.data;
+      }
+
+      async function getFolderFiles(folderName) {
+        const res = await fetch("http://localhost:3000", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: folderName }),
+        });
+        if (!res.ok) {
+          throw new Error("Not a folder");
+        }
+        const data = await res.json();
+        return data.data;
+      }
+
+      async function getFileContent(fileName) {
+        const res = await fetch("http://localhost:3000/file", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: fileName }),
+        });
+        const data = await res.json();
+        return data.content;
+      }
+
+      const res = await getData();
+
+      p.innerHTML = "";
+
+      const div = document.createElement("div");
+      res.forEach((r) => {
+        const btn = document.createElement("button");
+        btn.innerText = r;
+
+        btn.addEventListener("click", async () => {
+          const contentDivs = p.querySelectorAll(".content-display");
+          contentDivs.forEach((div) => div.remove());
+
+          try {
+            const files = await getFolderFiles(r);
+            const filesDiv = document.createElement("div");
+            filesDiv.classList.add("content-display");
+            files.forEach((file) => {
+              const fileBtn = document.createElement("button");
+              fileBtn.innerText = file;
+              fileBtn.addEventListener("click", async () => {
+                const subContentDivs = p.querySelectorAll(
+                  ".sub-content-display"
+                );
+                subContentDivs.forEach((div) => div.remove());
+
+                try {
+                  const subFiles = await getFolderFiles(`${r}/${file}`);
+                  const subFilesDiv = document.createElement("div");
+                  subFilesDiv.classList.add("sub-content-display");
+                  subFiles.forEach((subFile) => {
+                    const subFileP = document.createElement("p");
+                    subFileP.innerText = subFile;
+                    subFilesDiv.appendChild(subFileP);
+                  });
+                  p.appendChild(subFilesDiv);
+                } catch (err) {
+                  const content = await getFileContent(`${r}/${file}`);
+                  const contentDiv = document.createElement("div");
+                  contentDiv.classList.add("sub-content-display");
+                  const pre = document.createElement("pre");
+                  pre.innerText = content;
+                  contentDiv.appendChild(pre);
+                  p.appendChild(contentDiv);
+                }
+              });
+              filesDiv.appendChild(fileBtn);
+            });
+            p.appendChild(filesDiv);
+          } catch (err) {
+            const content = await getFileContent(r);
+            const contentDiv = document.createElement("div");
+            contentDiv.classList.add("content-display");
+            const pre = document.createElement("pre");
+            pre.innerText = content;
+            contentDiv.appendChild(pre);
+            p.appendChild(contentDiv);
+          }
+        });
+
+        div.append(btn);
+      });
+
+      p.appendChild(div);
+    });
+  </script>
+</html>
