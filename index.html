@@ -1,119 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
 
-  <body>
-    <p id="para"></p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
 
-    <button id="btn">click me</button>
-  </body>
-  <script>
-    const p = document.getElementById("para");
-    const btn = document.getElementById("btn");
+<body>
+  <input type="text" id="fileName" placeholder="Enter file name" />
+  <button id="createFile">Create File</button>
+</body>
+<script>
+  async function main() {
+    const div = document.createElement('div');
 
-    btn.addEventListener("click", async () => {
-      async function getData() {
-        const res = await fetch("http://localhost:3000");
-        const data = await res.json();
+    const response = await fetch('http://localhost:3000');
+    const data = await response.json();
 
-        return data.data;
-      }
+    // console.log(data)
 
-      async function getFolderFiles(folderName) {
-        const res = await fetch("http://localhost:3000", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: folderName }),
-        });
-        if (!res.ok) {
-          throw new Error("Not a folder");
-        }
-        const data = await res.json();
-        return data.data;
-      }
+    document.body.appendChild(div);
 
-      async function getFileContent(fileName) {
-        const res = await fetch("http://localhost:3000/file", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: fileName }),
-        });
-        const data = await res.json();
-        return data.content;
-      }
+    data.data.forEach((item) => {
+      const button = document.createElement('button');
+      button.textContent = item;
 
-      const res = await getData();
+      button.addEventListener('click', async () => {
+        if (item.includes('.')) {
+          const res = await fetch('http://localhost:3000/file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: item }),
+          });
 
-      p.innerHTML = "";
+          const data = await res.json();
 
-      const div = document.createElement("div");
-      res.forEach((r) => {
-        const btn = document.createElement("button");
-        btn.innerText = r;
+          console.log(data);
 
-        btn.addEventListener("click", async () => {
-          const contentDivs = p.querySelectorAll(".content-display");
-          contentDivs.forEach((div) => div.remove());
+          document.querySelectorAll('pre').forEach(data => data.remove());
 
-          try {
-            const files = await getFolderFiles(r);
-            const filesDiv = document.createElement("div");
-            filesDiv.classList.add("content-display");
-            files.forEach((file) => {
-              const fileBtn = document.createElement("button");
-              fileBtn.innerText = file;
-              fileBtn.addEventListener("click", async () => {
-                const subContentDivs = p.querySelectorAll(
-                  ".sub-content-display"
-                );
-                subContentDivs.forEach((div) => div.remove());
+          const p = document.createElement('pre');
+          p.textContent = data.content;
+          document.body.appendChild(p);
 
-                try {
-                  const subFiles = await getFolderFiles(`${r}/${file}`);
-                  const subFilesDiv = document.createElement("div");
-                  subFilesDiv.classList.add("sub-content-display");
-                  subFiles.forEach((subFile) => {
-                    const subFileP = document.createElement("p");
-                    subFileP.innerText = subFile;
-                    subFilesDiv.appendChild(subFileP);
-                  });
-                  p.appendChild(subFilesDiv);
-                } catch (err) {
-                  const content = await getFileContent(`${r}/${file}`);
-                  const contentDiv = document.createElement("div");
-                  contentDiv.classList.add("sub-content-display");
-                  const pre = document.createElement("pre");
-                  pre.innerText = content;
-                  contentDiv.appendChild(pre);
-                  p.appendChild(contentDiv);
-                }
+        } else {
+          
+          const res = await fetch('http://localhost:3000', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: item }),
+          });
+
+          const data = await res.json();
+
+          console.log('subitem', data);
+
+
+          data.data.forEach((subItem) => {
+            const subButton = document.createElement('button');
+            subButton.textContent = subItem;
+
+            subButton.addEventListener('click', async () => {
+              const path = `${item}/${subItem}`;
+
+              const res = await fetch('http://localhost:3000/file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: path })
               });
-              filesDiv.appendChild(fileBtn);
-            });
-            p.appendChild(filesDiv);
-          } catch (err) {
-            const content = await getFileContent(r);
-            const contentDiv = document.createElement("div");
-            contentDiv.classList.add("content-display");
-            const pre = document.createElement("pre");
-            pre.innerText = content;
-            contentDiv.appendChild(pre);
-            p.appendChild(contentDiv);
-          }
-        });
 
-        div.append(btn);
+              const data = await res.json();
+
+              console.log('full path: ', data);
+
+              document.querySelectorAll('pre').forEach(data => data.remove());
+
+              const p = document.createElement('pre');
+              p.textContent = data.content;
+              document.body.appendChild(p);
+
+
+            })
+
+
+            div.appendChild(subButton);
+          });
+
+        }
+
+
       });
 
-      p.appendChild(div);
+      div.appendChild(button);
     });
-  </script>
+
+    document.body.appendChild(div);
+  }
+
+  main();
+</script>
+
 </html>
